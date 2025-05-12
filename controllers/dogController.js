@@ -92,10 +92,9 @@ export const updateDogById = async (req, res) => {
       breed,
       age,
       weight,
-      health_conditions || null,
+      health_conditions || "none",
       dogId,
     ]);
-
     res
       .status(200)
       .json({ message: "Dog Update Successfully", data: response.rows[0] });

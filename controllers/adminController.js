@@ -119,6 +119,25 @@ export const getAllUsers = async (req, res) => {
   }
 };
 
+
+export const deleteUserById = async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const sql = `DELETE FROM users where id = $1`;
+    const response = await pool.query(sql, [id]);
+    if (response.rowCount > 0) {
+      res.status(200).json({ message: "Delete Successfully" });
+    } else {
+      return res.status(404).json({ message: "Invalid User ID" });
+    }
+  } catch (error) {
+    res.status(500).json({
+      message: "Internal Server Error",
+      error: error.message,
+    });
+  }
+};
+
 //เรียกดูสุ่นัขทั้งหมดพร้อมเบอร์โทร และ ชื่อเจ้าของ และ search ชื่อหมาผ่าน query params ได้
 export const getAllDogs = async (req, res) => {
   try {
@@ -336,3 +355,4 @@ export const toggleRoomStatus = async (req, res) => {
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
+

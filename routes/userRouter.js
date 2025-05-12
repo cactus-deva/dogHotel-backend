@@ -1,6 +1,5 @@
 import express from "express";
 import {
-  deleteUserById,
   getUserById,
   loginUser,
   registerUser,
@@ -18,7 +17,6 @@ userRouter.route("/login").post(loginUser);
 userRouter
   .route("/profile/:id")
   .get(authenticateToken, authorizeSelf, getUserById)
-  .delete(authenticateToken, authorizeSelf, deleteUserById)
   .patch(authenticateToken, authorizeSelf, updateUserById);
 
 export default userRouter;

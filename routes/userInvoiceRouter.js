@@ -5,7 +5,6 @@ import {
 import { getMyInvoices } from "../controllers/userInvoiceController.js";
 
 
-
 const userInvoiceRouter = express.Router();
 
 userInvoiceRouter.route("/me").get(authenticateToken, getMyInvoices);
