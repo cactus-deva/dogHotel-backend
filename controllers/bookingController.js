@@ -8,8 +8,16 @@ export const createBookingAndInvoice = async (req, res) => {
     //check date
     const checkInDate = new Date(check_in);
     const checkOutDate = new Date(check_out);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     checkInDate.setHours(0, 0, 0, 0);
     checkOutDate.setHours(0, 0, 0, 0);
+
+    if (today > checkInDate) {
+      return res
+        .status(400)
+        .json({ message: "The selected date already passed" });
+    }
 
     if (checkInDate >= checkOutDate) {
       return res
@@ -33,7 +41,7 @@ export const createBookingAndInvoice = async (req, res) => {
       check_in,
       check_out,
     ]);
-
+    console.log(checkRoom.rows);
     if (checkRoom.rowCount > 0) {
       return res
         .status(409)
@@ -41,7 +49,7 @@ export const createBookingAndInvoice = async (req, res) => {
     }
 
     //check dog has duplicate booking
-    const checkDogBookingSql = `SELECT * from bookings WHERE dog_id = $1 AND check_in = $2 AND check_out = $3`;
+    const checkDogBookingSql = `SELECT * from bookings WHERE dog_id = $1 AND status = 'confirmed' AND check_in <= $3 AND check_out >= $2`;
     const checkDogBooking = await pool.query(checkDogBookingSql, [
       dog_id,
       check_in,
@@ -49,16 +57,16 @@ export const createBookingAndInvoice = async (req, res) => {
     ]);
 
     if (checkDogBooking.rowCount > 0) {
-      res
+      return res
         .status(409)
-        .json({ message: "This dog already has a booking in this period" });
+        .json({ message: "This dog already has a booking during this period" });
     }
 
     //get hotelroom price
     const hotelroomPriceSql = `SELECT price_per_night FROM hotelrooms WHERE id = $1`;
     const hotelroomPrice = await pool.query(hotelroomPriceSql, [hotelroom_id]);
     if (hotelroomPrice.rowCount === 0) {
-      res.status(404).json({ message: "Hotelroom not found" });
+      return res.status(404).json({ message: "Hotelroom not found" });
     }
 
     const { price_per_night, name } = hotelroomPrice.rows[0];
@@ -149,7 +157,6 @@ export const getMyBookings = async (req, res) => {
 };
 
 //คงuser_id และ booking_id ไว้เหมือนเดิม แก้ไขแค่ห้อง, checkin, checkout, status
-//ไว้แก้ไข status ถ้าupdate default เป็น reschedule
 export const updateBookingById = async (req, res) => {
   try {
     const bookingId = parseInt(req.params.id);
@@ -178,15 +185,16 @@ export const updateBookingById = async (req, res) => {
     const oldBooking = bookingResult.rows[0];
     const today = new Date();
     const checkIn = new Date(oldBooking.check_in);
+    const checkOut = new Date(oldBooking.check_out)
     today.setHours(0, 0, 0, 0);
     checkIn.setHours(0, 0, 0, 0);
+    checkOut.setHours(0,0,0,0)
+    const numNigths = Math.ceil((checkOut - checkIn) / (1000 *60*60*24))
 
     if (today >= checkIn) {
-      return res
-        .status(403)
-        .json({
-          message: "Cannot update booking less than 1 day before check-in",
-        });
+      return res.status(403).json({
+        message: "Cannot update booking less than 1 day before check-in",
+      });
     }
 
     // เช็กว่า booking ใหม่ชนกับรายการอื่นหรือไม่
@@ -245,8 +253,11 @@ export const updateBookingById = async (req, res) => {
       bookingId,
     ]);
 
+    const updateInvoiceSql = `UPDATE invoices SET total_price = $1 WHERE booking_id = $2`
+    await pool.query(updateInvoiceSql, [price * numNigths, bookingId])
+
     res.status(200).json({
-      message: "Booking updated successfully",
+      message: "Booking and Invoive updated successfully",
       data: updated.rows[0],
     });
   } catch (error) {
@@ -266,23 +277,21 @@ export const cancelBookingById = async (req, res) => {
     const result = await pool.query(sql, [bookingId, userId]);
 
     if (result.rowCount === 0) {
-      res
+      return res
         .status(404)
         .json({ message: "Booking Not Found or Already Cancelled" });
     }
 
     const booking = result.rows[0];
-    const now = new Date();
+    const today = new Date();
     const checkIn = new Date(booking.check_in);
-    now.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
     checkIn.setHours(0, 0, 0, 0);
 
-    if (now >= checkIn) {
-      return res
-        .status(403)
-        .json({
-          message: "Cannot cancel booking less than 1 day before check-in",
-        });
+    if (today >= checkIn) {
+      return res.status(403).json({
+        message: "Cannot cancel booking less than 1 day before check-in",
+      });
     }
 
     const cancelSql = `UPDATE bookings SET status = 'cancelled' WHERE id = $1`;
@@ -299,9 +308,11 @@ export const cancelBookingById = async (req, res) => {
 export const getAvailableRoomsBySize = async (req, res) => {
   try {
     const { check_in, check_out, size } = req.query;
-    const inDate = new Date(check_in)
-    const outDate = new Date(check_out)
-  
+    const inDate = new Date(check_in);
+    const outDate = new Date(check_out);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
     if (!check_in || !check_out || !size) {
       return res
         .status(400)
@@ -312,9 +323,18 @@ export const getAvailableRoomsBySize = async (req, res) => {
       return res.status(400).json({ message: "Invalid date format" });
     }
 
-    if(inDate >= outDate) {
-      return res.status(400).json({message: "Check-in cannot come after Check-out"})
+    if (inDate >= outDate) {
+      return res
+        .status(400)
+        .json({ message: "Check-in cannot come after Check-out" });
     }
+
+    if (today > inDate) {
+      return res
+        .status(400)
+        .json({ message: "The selected date already passed" });
+    }
+
     const sql = `
   SELECT r.id, r.name, r.size, r.price_per_night
   FROM hotelrooms r
@@ -329,13 +349,22 @@ export const getAvailableRoomsBySize = async (req, res) => {
   ORDER BY r.name;
 `;
 
-    const values = [size, check_in, check_out]
-    const result = await pool.query(sql, values)
+    const values = [size, check_in, check_out];
+    const result = await pool.query(sql, values);
 
-    res.status(200).json({message: "Available rooms fetched", data: result.rows})
+    if (result.rowCount === 0) {
+      res
+        .status(400)
+        .json({ message: "No available room for the selected days", data: [] });
+    }
 
+    res
+      .status(200)
+      .json({ message: "Available rooms fetched", data: result.rows });
   } catch (error) {
     console.error("Error fetching available rooms:", error.message);
-    res.status(500).json({ message: "Internal Server Error", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Internal Server Error", error: error.message });
   }
 };
