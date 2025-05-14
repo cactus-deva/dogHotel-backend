@@ -46,15 +46,15 @@ export const registerUser = async (req, res) => {
 export const loginUser = async (req, res) => {
   try {
     const { username, password } = req.body;
+    const usernameStr = username.toLowerCase()
     const sql = `SELECT * FROM users WHERE username = $1`;
-    const response = await pool.query(sql, [username]);
+    const response = await pool.query(sql, [usernameStr]);
 
     if (response.rowCount === 0) {
       return res.status(400).json({ message: "Username Not Found" });
     }
 
     const user = response.rows[0];
-    console.log(user, "user<<<");
 
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) {
