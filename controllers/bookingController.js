@@ -141,7 +141,7 @@ export const getMyBookings = async (req, res) => {
         JOIN dogs d ON b.dog_id = d.id
         JOIN hotelrooms r ON b.hotelroom_id = r.id
         WHERE b.user_id = $1 
-        ORDER BY b.created_at DESC`;
+        ORDER BY b.check_in`;
 
     const response = await pool.query(sql, [userId]);
 

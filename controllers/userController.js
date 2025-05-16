@@ -55,7 +55,6 @@ export const loginUser = async (req, res) => {
     }
 
     const user = response.rows[0];
-
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) {
       return res.status(400).json({ message: "Invalid Password" });
@@ -67,7 +66,6 @@ export const loginUser = async (req, res) => {
       { expiresIn: "1h" }
     );
 
-    
     res.status(200).json({
       message: "Login Successful",
       userId: user.id,
