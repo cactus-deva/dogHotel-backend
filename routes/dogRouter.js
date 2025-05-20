@@ -1,7 +1,5 @@
 import express from "express";
-import {
-  authenticateToken
-} from "../middleware/authMiddleware.js";
+import { authenticateToken } from "../middleware/authMiddleware.js";
 import {
   createDog,
   deleteDogById,
@@ -10,14 +8,11 @@ import {
 } from "../controllers/dogController.js";
 
 const dogRouter = express.Router();
-//Dogs Table
-dogRouter.route("/create").post(authenticateToken, createDog);
-dogRouter
-  .route("/me")
-  .get(authenticateToken, getMyDogs)
 
-  dogRouter.route("/:id")
-  .patch(authenticateToken, updateDogById)
-  .delete(authenticateToken, deleteDogById);
+dogRouter
+  .post("/create", authenticateToken, createDog)
+  .get("/me", authenticateToken, getMyDogs)
+  .patch("/:id", authenticateToken, updateDogById)
+  .delete("/:id", authenticateToken, deleteDogById);
 
 export default dogRouter;

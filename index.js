@@ -8,6 +8,7 @@ import bookingRouter from './routes/bookingRouter.js'
 import reviewRouter from './routes/reviewRouter.js'
 import userInvoiceRouter from './routes/userInvoiceRouter.js'
 import adminInvoiceRouter from './routes/adminInvoiceRouter.js'
+import { keepDatabaseAlive } from './db/keepDatabaseAlive.js'
 
 dotenv.config()
 
@@ -28,6 +29,7 @@ app.use('/api/users/dogs', dogRouter)
 app.use('/api/users/booking', bookingRouter)
 app.use('/api/users/review', reviewRouter)
 
+setInterval(keepDatabaseAlive, 300000)
 
 app.listen(PORT, () =>{
     console.log(`Server is running at port ${PORT}`);

@@ -12,11 +12,10 @@ import {
 
 const userRouter = express.Router();
 
-userRouter.route("/register").post(registerUser);
-userRouter.route("/login").post(loginUser);
 userRouter
-  .route("/profile/:id")
-  .get(authenticateToken, authorizeSelf, getUserById)
-  .patch(authenticateToken, authorizeSelf, updateUserById);
+  .post("/register", registerUser)
+  .post("/login", loginUser)
+  .get("/profile/:id", authenticateToken, authorizeSelf, getUserById)
+  .patch("/profile/:id", authenticateToken, authorizeSelf, updateUserById);
 
 export default userRouter;

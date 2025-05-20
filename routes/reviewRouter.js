@@ -3,16 +3,19 @@ import {
   authenticateToken,
   authorizeSelf,
 } from "../middleware/authMiddleware.js";
-import { createReview, deleteReviewById, getReviewByUserId, updateReviewById } from "../controllers/reviewController.js";
-
+import {
+  createReview,
+  deleteReviewById,
+  getReviewByUserId,
+  updateReviewById,
+} from "../controllers/reviewController.js";
 
 const reviewRouter = express.Router();
 
-reviewRouter.route("/create").post(authenticateToken, createReview);
 reviewRouter
-  .route("/profile/:id")
-  .get(authenticateToken, authorizeSelf, getReviewByUserId)
-  .patch(authenticateToken, updateReviewById)
-  .delete(authenticateToken, deleteReviewById);
+  .post("/create", authenticateToken, createReview)
+  .get("/profile/:id", authenticateToken, authorizeSelf, getReviewByUserId)
+  .patch("/profile/:id", authenticateToken, updateReviewById)
+  .delete("/profile/:id", authenticateToken, deleteReviewById);
 
 export default reviewRouter;

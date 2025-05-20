@@ -1,20 +1,29 @@
-import express from 'express'
-import  {adminLogin, deleteUserById, getAllBookings, getAllDogs, getAllReviews, getAllUsers, getAvailableRooms, registerAdmin, toggleRoomStatus } from '../controllers/adminController.js'
-import { authenticateAdmin } from '../middleware/authAdmin.js'
+import express from "express";
+import {
+  adminLogin,
+  deleteUserById,
+  getAllBookings,
+  getAllDogs,
+  getAllReviews,
+  getAllUsers,
+  getAvailableRooms,
+  registerAdmin,
+  toggleRoomStatus,
+} from "../controllers/adminController.js";
+import { authenticateAdmin } from "../middleware/authAdmin.js";
 
-const adminRouter = express.Router()
+const adminRouter = express.Router();
 
-adminRouter.route("/register").post(registerAdmin)
-adminRouter.route("/login").post(adminLogin)
+adminRouter.post("/register", registerAdmin).post("/login", adminLogin);
 
-adminRouter.use(authenticateAdmin)
+adminRouter.use(authenticateAdmin);
 
-adminRouter.route("/users").get(getAllUsers)
-adminRouter.route("/users/:id").delete(deleteUserById)
-adminRouter.route("/dogs").get(getAllDogs)
-adminRouter.route("/reviews").get(getAllReviews)
-adminRouter.route("/bookings").get(getAllBookings)
-adminRouter.route("/room-status").get(toggleRoomStatus)
-adminRouter.route("/available-room").get(getAvailableRooms)
+adminRouter.get("/users", getAllUsers)
+.delete("/users/:userId",deleteUserById)
+.get("/dogs",getAllDogs)
+.get("/reviews",getAllReviews)
+.get("/bookings",getAllBookings)
+.patch("/room-status",toggleRoomStatus)
+.get("/available-room",getAvailableRooms)
 
-export default adminRouter
+export default adminRouter;

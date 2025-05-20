@@ -13,12 +13,11 @@ import { authenticateAdmin } from "../middleware/authAdmin.js";
 
 const adminInvoiceRouter = express.Router();
 
-adminInvoiceRouter.use(authenticateAdmin)
-adminInvoiceRouter.route("/create").post(createInvoice)
-adminInvoiceRouter.route("/")  .get(authenticateToken, getAllInvoices)
+adminInvoiceRouter.use(authenticateAdmin);
 adminInvoiceRouter
-  .route("/:id")
-  .patch(authenticateToken, updateInvoiceById)
-  .delete(authenticateToken, deleteInvoiceById);
+  .post("/create", createInvoice)
+  .get("/", authenticateToken, getAllInvoices)
+  .patch("/:invoiceId", authenticateToken, updateInvoiceById)
+  .delete("/:invoiceId", authenticateToken, deleteInvoiceById);
 
 export default adminInvoiceRouter;
