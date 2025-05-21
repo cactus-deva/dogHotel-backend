@@ -1,14 +1,14 @@
 import pool from "../db/connect.js";
 import bcrypt from "bcrypt";
 
-export const checkAdminUsername = async ({ username }) => {
+export const checkAdminUsername = async (username) => {
   //เช็คว่า มี username ในระบบไหม
   const sql = `SELECT * FROM admin WHERE username = $1`;
   const response = await pool.query(sql, [username]);
-  return response.rows[0];
+  return response
 };
 
-export const createAdminUsername = async ({ username, password, email }) => {
+export const createAdminUsername = async (username, { password, email }) => {
   //check dupe
   const checkDuplicateSql = `SELECT * FROM admin WHERE username = $1 OR email = $2`;
   const checkDuplicate = await pool.query(checkDuplicateSql, [username, email]);

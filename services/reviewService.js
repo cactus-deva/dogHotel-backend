@@ -7,7 +7,7 @@ export const createReviewService = async ({
   comment,
 }) => {
   //เช็คว่า booking นี้มีจริงและ status= 'confirmed' or 'rescheduled' ถึงจะรีวิวได้
-  const bookingCheckSql = `SELECT * FROM bookings WHERE id = $1 AND user_id = $2 AND status = 'confirmed' OR status = 'rescheduled'`;
+  const bookingCheckSql = `SELECT * FROM bookings WHERE id = $1 AND user_id = $2 AND (status = 'confirmed' OR status = 'rescheduled)'`;
   const bookingCheck = await pool.query(bookingCheckSql, [booking_id, user_id]);
   if (bookingCheck.rowCount === 0) {
     const error = new Error("Cannot Review, Booking not confirmed");

@@ -7,9 +7,15 @@ export const getInvoiceByUserId = async (userId) => {
         invoices.total_price,
         invoices.payment_status,
         invoices.payment_method,
-        invoices.note
+        invoices.noteม
+        hotelrooms.name AS room_name,
+        dogs.name AS dog_name,
+        bookings.check_in AS check_in,
+        bookings.check_out AS check_out
         FROM invoices
         JOIN bookings ON invoices.booking_id = bookings.id
+        JOIN hotelrooms ON hotelrooms.id = bookings.hotelroom_id
+        JOIN dogs ON dogs.id = bookings.dog_id
         WHERE bookings.user_id = $1
         ORDER BY invoices.issue_date DESC`
 

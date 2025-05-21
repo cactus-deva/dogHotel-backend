@@ -126,9 +126,16 @@ export const createNewBookingAndInvoice = async (
 };
 
 export const getBookingByUserId = async (userId) => {
+  if (!userId) {
+    const error = new Error("Missing User ID token");
+    error.status = 400;
+    throw error;
+  }
   const sql = `SELECT b.id AS booking_id,
         b.check_in,
         b.check_out,
+        b.dog_id,
+        b.hotelroom_id,
         b.status,
         b.created_at,
         b.price_per_night,
@@ -147,7 +154,7 @@ export const getBookingByUserId = async (userId) => {
 export const updateBookingByBookingId = async (
   userId,
   bookingId,
-  { hotelroom_id, check_in, check_out }
+  { hotelroom_id, check_in, check_out, dog_id }
 ) => {
   // check booking duplicate
   const checkBookingSql = `
@@ -164,25 +171,49 @@ export const updateBookingByBookingId = async (
 
   const oldBooking = bookingResult.rows[0];
   const today = new Date();
-  const checkIn = new Date(oldBooking.check_in);
-  const checkOut = new Date(oldBooking.check_out);
+  const newCheckIn = new Date(check_in);
+  const newCheckOut = new Date(check_out);
   today.setHours(0, 0, 0, 0);
-  checkIn.setHours(0, 0, 0, 0);
-  checkOut.setHours(0, 0, 0, 0);
+  newCheckIn.setHours(0, 0, 0, 0);
+  newCheckOut.setHours(0, 0, 0, 0);
 
-  const numNigths = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));
+  const numNigths = Math.ceil(
+    (newCheckIn - newCheckOut) / (1000 * 60 * 60 * 24)
+  );
 
-  if (today >= checkIn) {
-    const error = new Error(
-      "Cannot update booking less than 1 day before check-in"
-    );
-    error.status = 403;
+  if (today > newCheckIn) {
+    const error = new Error("Check-in date cannot be in the past");
+    error.status = 400;
     throw error;
   }
 
-  if (checkOut <= checkIn) {
+  if (newCheckIn >= newCheckOut) {
     const error = new Error("Check-in date cannot come before Check-out date");
-    error.status = 403;
+    error.status = 400;
+    throw error;
+  }
+  // เช็คหมาจองซ้ำช่วงวันนั้นไหม
+  const checkDogBookingSql = `
+  SELECT * from bookings 
+  WHERE dog_id = $1 
+    AND status = 'confirmed'
+    AND check_in <= $3 
+    AND check_out >= $2
+    AND id <> $4
+`;
+
+  const checkDogBooking = await pool.query(checkDogBookingSql, [
+    dog_id,
+    check_in,
+    check_out,
+    bookingId, 
+  ]);
+
+  if (checkDogBooking.rowCount > 0) {
+    const error = new Error(
+      "This dog already has a booking during this period"
+    );
+    error.status = 409;
     throw error;
   }
 
@@ -193,6 +224,7 @@ export const updateBookingByBookingId = async (
         AND check_in <= $3
         AND check_out >= $2
         AND id <> $4 
+        AND status = 'confirmed'
       `;
   const conflict = await pool.query(checkSql, [
     hotelroom_id,
@@ -233,8 +265,9 @@ export const updateBookingByBookingId = async (
         SET hotelroom_id = $1,
             check_in = $2,
             check_out = $3,
-            price_per_night = $4
-        WHERE id = $5
+            price_per_night = $4,
+            dog_id = $5
+        WHERE id = $6
         RETURNING *;
       `;
 
@@ -243,13 +276,20 @@ export const updateBookingByBookingId = async (
     check_in,
     check_out,
     price,
+    dog_id,
     bookingId,
   ]);
 
   const updateInvoiceSql = `UPDATE invoices SET total_price = $1 WHERE booking_id = $2`;
   await pool.query(updateInvoiceSql, [price * numNigths, bookingId]);
+  
+  const updateBooking = response.rows[0]
+  const roomRes = await pool.query(`SELECT name FROM hotelrooms WHERE id = $1`, [updateBooking.hotelroom_id])
+  const room_name = roomRes.rows[0]?.name || 'unknown'
 
-  return response.rows[0];
+  return {
+    ...updateBooking, room_name
+  }
 };
 
 export const cancelBookingByBookingId = async (userId, bookingId) => {
@@ -277,7 +317,8 @@ export const cancelBookingByBookingId = async (userId, bookingId) => {
   }
 
   const cancelSql = `UPDATE bookings SET status = 'cancelled' WHERE id = $1`;
-  await pool.query(cancelSql, [bookingId]);
+  const res = await pool.query(cancelSql, [bookingId]);
+  console.log(res.rows[0], "res backend");
 };
 
 export const getAvailableRoomByRoomSize = async ({

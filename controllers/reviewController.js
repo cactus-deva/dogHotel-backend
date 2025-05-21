@@ -23,7 +23,7 @@ export const getReviewByUserId = async (req, res) => {
     res
       .status(200)
       .json({
-        message: "Get user's reviews successfully",
+        message: "Fetch reviews successfully",
         data: userReviews,
       });
   } catch (error) {

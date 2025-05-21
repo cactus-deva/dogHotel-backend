@@ -1,4 +1,4 @@
-import pool from "../db/connect.js";
+
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import {
@@ -17,22 +17,19 @@ import {
 export const adminLogin = async (req, res) => {
   try {
     const { username, password } = req.body;
+    const usernameStr = username.toLowerCase().trim();
 
-    const adminUsername = await checkAdminUsername({ username });
+    const adminResult = await checkAdminUsername(usernameStr);
 
-    if (!adminUsername || adminUsername.rowCount === 0) {
-      const error = new Error("Invalid username or password");
-      error.status = 400;
-      throw error;
+    if (adminResult.rowCount === 0) {
+      return res.status(400).json({ message: "Invalid username or password" });
     }
 
-    const admin = adminUsername;
+    const admin = adminResult.rows[0];
+    const isMatch = await bcrypt.compare(password.trim(), admin.password);
 
-    const isMatch = await bcrypt.compare(password, admin.password);
     if (!isMatch) {
-      const error = new Error("Invalid username or password");
-      error.status = 400;
-      throw error;
+      return res.status(400).json({ message: "Invalid username or password" });
     }
 
     const payload = {
@@ -40,28 +37,31 @@ export const adminLogin = async (req, res) => {
       username: admin.username,
       role: admin.role,
     };
-
+    
     const token = jwt.sign(payload, process.env.JWT_SECRET, {
       expiresIn: "3h",
     });
-
     res.status(200).json({ message: "Admin login successfully", token });
   } catch (error) {
-    res.status(500).json({ message: "Login Failed", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Login Failed", error: error.message });
   }
 };
+
 
 export const registerAdmin = async (req, res) => {
   try {
     const { username, password, email } = req.body;
+    const usernameStr = username.toLowerCase().trim()
 
-    if (!username || !password || !email) {
+    if (!usernameStr || !password || !email) {
       return res.status(400).json({
         message: "Please input all required fields",
       });
     }
-    const newAdmin = await createAdminUsername({ username, email, password });
-
+    const newAdmin = await createAdminUsername(usernameStr, { password, email});
+    
     res.status(200).json({
       message: "Admin registered successfully",
       data: newAdmin,
@@ -78,7 +78,7 @@ export const getAllUsers = async (req, res) => {
   try {
     const { id, name, email, phone } = req.query;
     const allUsers = await getUsers({ id, name, email, phone });
-    console.log(allUsers, "allusers");
+   
     res.status(200).json({ message: "Get Users Successfully", data: allUsers });
   } catch (error) {
     res.status(500).json({ message: "Database Error" });

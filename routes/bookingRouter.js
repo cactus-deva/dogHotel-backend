@@ -17,7 +17,7 @@ bookingRouter
   .post("/create", authenticateToken, createBookingAndInvoice)
   .get("/available", authenticateToken, getAvailableRoomsBySize)
   .get("/:id", authenticateToken, authorizeSelf, getMyBookings)
-  .patch("/:id", authenticateToken, updateBookingById)
-  .delete("/:id", authenticateToken, cancelBookingById);
+  .patch("/:bookingId", authenticateToken, updateBookingById)
+  .delete("/:bookingId", authenticateToken, cancelBookingById);
 
 export default bookingRouter;

@@ -63,8 +63,13 @@ export const loginUser = async (req, res) => {
 
     res.status(200).json({
       message: "Login Successful",
-      userId: user.id,
-      name: user.first_name,
+      data: {
+        userId: user.id,
+        name: user.first_name,
+        username: user.username,
+        email: user.email,
+        phone: user.phone
+      },
       token,
     });
   } catch (error) {
@@ -85,9 +90,7 @@ export const getUserById = async (req, res) => {
       return res.status(404).json({ message: "User ID invalid" });
     }
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: error.message });
+    res.status(500).json({ message: error.message });
   }
 };
 
@@ -105,14 +108,15 @@ export const updateUserById = async (req, res) => {
     });
 
     if (updateUser) {
-      res.status(200)
+      res
+        .status(200)
         .json({ message: "Update Data Successfully", data: updateUser });
     } else {
       res.status(404).json({ message: "Update Data Failed" });
     }
   } catch (error) {
     res.status(500).json({
-      message:  error.message,
+      message: error.message,
     });
   }
 };
