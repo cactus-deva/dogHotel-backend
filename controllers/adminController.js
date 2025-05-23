@@ -1,4 +1,3 @@
-
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import {
@@ -14,22 +13,31 @@ import {
 } from "../services/adminService.js";
 
 //Admin login and issue token
-export const adminLogin = async (req, res) => {
+export const adminLogin = async (req, res, next) => {
   try {
     const { username, password } = req.body;
     const usernameStr = username.toLowerCase().trim();
+    if (!username || !password) {
+      const error = new Error("Please enter username and password");
+      error.status = 400;
+      throw error;
+    }
 
     const adminResult = await checkAdminUsername(usernameStr);
 
     if (adminResult.rowCount === 0) {
-      return res.status(400).json({ message: "Invalid username or password" });
+      const error = new Error("Invalid username");
+      error.status = 400;
+      throw error;
     }
 
     const admin = adminResult.rows[0];
     const isMatch = await bcrypt.compare(password.trim(), admin.password);
 
     if (!isMatch) {
-      return res.status(400).json({ message: "Invalid username or password" });
+      const error = new Error("Invalid username or password");
+      error.status = 400;
+      throw error;
     }
 
     const payload = {
@@ -37,73 +45,71 @@ export const adminLogin = async (req, res) => {
       username: admin.username,
       role: admin.role,
     };
-    
+
     const token = jwt.sign(payload, process.env.JWT_SECRET, {
       expiresIn: "3h",
     });
     res.status(200).json({ message: "Admin login successfully", token });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Login Failed", error: error.message });
+    next(error);
   }
 };
 
-
-export const registerAdmin = async (req, res) => {
+export const registerAdmin = async (req, res, next) => {
   try {
     const { username, password, email } = req.body;
-    const usernameStr = username.toLowerCase().trim()
+    const usernameStr = username.toLowerCase().trim();
 
     if (!usernameStr || !password || !email) {
-      return res.status(400).json({
-        message: "Please input all required fields",
-      });
+      const error = new Error("Please fill all required fields");
+      error.status = 400;
+      throw error;
     }
-    const newAdmin = await createAdminUsername(usernameStr, { password, email});
-    
+    const newAdmin = await createAdminUsername(usernameStr, {
+      password,
+      email,
+    });
+
     res.status(200).json({
       message: "Admin registered successfully",
       data: newAdmin,
     });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Failed to create Admin", error: error.message });
+    next(error);
   }
 };
 
 //เรียกดู user ทั้งหมด filter/search name, phone, email, id จาก query params ได้
-export const getAllUsers = async (req, res) => {
+export const getAllUsers = async (req, res, next) => {
   try {
     const { id, name, email, phone } = req.query;
     const allUsers = await getUsers({ id, name, email, phone });
-   
+
     res.status(200).json({ message: "Get Users Successfully", data: allUsers });
   } catch (error) {
-    res.status(500).json({ message: "Database Error" });
+    next(error);
   }
 };
 
-export const deleteUserById = async (req, res) => {
+export const deleteUserById = async (req, res, next) => {
   try {
     const userId = parseInt(req.params.userId);
     if (isNaN(userId)) {
-      res.status(404).json({ message: "Invalid user ID type" });
+      const error = new Error("Invalid User ID type");
+      error.status = 400;
+      throw error;
     }
 
     await deleteUserByUserId(userId);
 
     res.status(200).json({ message: "Delete Successfully" });
   } catch (error) {
-    res.status(error.status || 500).json({
-      message: error.message,
-    });
+    next(error);
   }
 };
 
 //เรียกดูสุ่นัขทั้งหมดพร้อมเบอร์โทร และ ชื่อเจ้าของ และ search ชื่อหมาผ่าน query params ได้
-export const getAllDogs = async (req, res) => {
+export const getAllDogs = async (req, res, next) => {
   try {
     const { name } = req.query;
     const allDogs = await getDogs({ name });
@@ -113,15 +119,15 @@ export const getAllDogs = async (req, res) => {
       data: allDogs,
     });
   } catch (error) {
-    res.status(error.status || 500).json({ message: error.message });
+    next(error);
   }
 };
 
 //เรียกดู bookings ทั้งหมด filter/ search booking_id, user_id, check_in, status ด้วย query params
-export const getAllBookings = async (req, res) => {
+export const getAllBookings = async (req, res, next) => {
   try {
     const { booking_id, user_id, status, start_date, end_date } = req.query;
-    console.log("req.query", req.query);
+
     const allBookings = await getBookings({
       booking_id,
       user_id,
@@ -134,12 +140,12 @@ export const getAllBookings = async (req, res) => {
       .status(200)
       .json({ message: "Get All Booking Successfully", data: allBookings });
   } catch (error) {
-    res.status(500).json({ message: "Failed to get bookings from Database" });
+    next(error);
   }
 };
 
 //เรียกดู review ทั้งหมด filter/search name, rating, start_date, end_date
-export const getAllReviews = async (req, res) => {
+export const getAllReviews = async (req, res, next) => {
   try {
     const { name, rating, start_date, end_date } = req.query;
     const allReviews = await getReviews({ name, rating, start_date, end_date });
@@ -148,17 +154,12 @@ export const getAllReviews = async (req, res) => {
       .status(200)
       .json({ message: "Get all reviews successfully", data: allReviews });
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        message: "Failed to get reviews from database",
-        error: error.message,
-      });
+    next(error);
   }
 };
 
-//เช็็คห้องว่าง ใส่เป็น query params แทนเพื่อเช็คห้องว่่าง
-export const getAvailableRooms = async (req, res) => {
+//เช็็คห้องว่าง ใส่เป็น query params เพื่อเช็คห้องว่่าง
+export const getAvailableRooms = async (req, res, next) => {
   try {
     const { check_in, check_out } = req.query;
 
@@ -175,29 +176,26 @@ export const getAvailableRooms = async (req, res) => {
       data: allAvailableRooms,
     });
   } catch (error) {
-    res.status(500).json({
-      message: "Failed to fetch available rooms",
-      error: error.message,
-    });
+    next(error);
   }
 };
 
 //เปลี่ยน room status : close / open
-export const toggleRoomStatus = async (req, res) => {
+export const toggleRoomStatus = async (req, res, next) => {
   const { id, is_active } = req.body;
   try {
     const roomStatus = await changeRoomStatus({ id, is_active });
-    if (roomStatus) {
-      res.status(200).json({
-        message: `Updated Room Status, Room Status is now ${
-          is_active ? "opened" : "closed"
-        }`,
-      });
-    } else {
-      res.status(400).json({
-        message: "failed to update room status" })
+    if (!roomStatus) {
+      const error = new Error("Failed to update room status");
+      error.status = 400;
+      throw error;
     }
+    res.status(200).json({
+      message: `Updated Room Status, Room Status is now ${
+        is_active ? "opened" : "closed"
+      }`,
+    });
   } catch (error) {
-    res.status(500).json({ message: "Database Error" });
+    next(error);
   }
 };

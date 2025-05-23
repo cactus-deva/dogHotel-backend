@@ -5,7 +5,7 @@ export const checkAdminUsername = async (username) => {
   //เช็คว่า มี username ในระบบไหม
   const sql = `SELECT * FROM admin WHERE username = $1`;
   const response = await pool.query(sql, [username]);
-  return response
+  return response;
 };
 
 export const createAdminUsername = async (username, { password, email }) => {
@@ -62,7 +62,6 @@ export const getUsers = async ({ id, name, email, phone }) => {
   sql += ` ORDER BY created_at DESC`;
 
   const response = await pool.query(sql, values);
-  console.log(response.rows, "res>>>");
   return response.rows;
 };
 
@@ -80,9 +79,8 @@ export const deleteUserByUserId = async (userId) => {
   await pool.query(sql, [userId]);
 };
 
-
-export const getDogs = async ({name}) => {
-    let sql = `
+export const getDogs = async ({ name }) => {
+  let sql = `
       SELECT 
         dogs.id AS dog_id,
         dogs.name AS dog_name,
@@ -96,19 +94,25 @@ export const getDogs = async ({name}) => {
       JOIN users ON dogs.user_id = users.id
     `;
 
-    const values = [];
+  const values = [];
 
-    if (name && name.trim() !== "") {
-      sql += ` WHERE LOWER(dogs.name) LIKE LOWER('%' || $1 || '%')`;
-      values.push(name.trim());
-    }
+  if (name && name.trim() !== "") {
+    sql += ` WHERE LOWER(dogs.name) LIKE LOWER('%' || $1 || '%')`;
+    values.push(name.trim());
+  }
 
-    const response = await pool.query(sql, values);
-    return response.rows
-}
+  const response = await pool.query(sql, values);
+  return response.rows;
+};
 
-export const getBookings = async ({ booking_id, user_id, status, start_date, end_date }) => {
-    let sql = `
+export const getBookings = async ({
+  booking_id,
+  user_id,
+  status,
+  start_date,
+  end_date,
+}) => {
+  let sql = `
       SELECT 
         bookings.id AS booking_id,
         dogs.name AS dog_name,
@@ -126,53 +130,53 @@ export const getBookings = async ({ booking_id, user_id, status, start_date, end
       LEFT JOIN invoices ON bookings.id = invoices.booking_id
     `;
 
-    const filters = [];
-    const values = [];
+  const filters = [];
+  const values = [];
 
-    if (booking_id) {
-      filters.push(`bookings.id = $${values.length + 1}`);
-      values.push(parseInt(booking_id));
-      console.log("booking_id filter:", booking_id)
-    }
-    console.log(sql, 'sql')
-    console.log(values, 'values')
-    if (user_id) {
-      filters.push(`bookings.user_id = $${values.length + 1}`);
-      values.push(parseInt(user_id));
-    }
-    if (status) {
-      filters.push(`bookings.status = $${values.length + 1}`);
-      values.push(status.trim().toLowerCase());
-    }
-    if (start_date && end_date) {
-      filters.push(
-        `bookings.check_in >= $${
-          values.length + 1
-        }::date AND bookings.check_in < ($${
-          values.length + 2
-        }::date + INTERVAL '1 day')`
-      );
-      values.push(start_date.trim(), end_date.trim());
-    }
-    if (start_date && !end_date) {
-      filters.push(`bookings.check_in >= $${values.length + 1}::date`);
-      values.push(start_date.trim());
-    }
+  if (booking_id) {
+    filters.push(`bookings.id = $${values.length + 1}`);
+    values.push(parseInt(booking_id));
+    console.log("booking_id filter:", booking_id);
+  }
+  console.log(sql, "sql");
+  console.log(values, "values");
+  if (user_id) {
+    filters.push(`bookings.user_id = $${values.length + 1}`);
+    values.push(parseInt(user_id));
+  }
+  if (status) {
+    filters.push(`bookings.status = $${values.length + 1}`);
+    values.push(status.trim().toLowerCase());
+  }
+  if (start_date && end_date) {
+    filters.push(
+      `bookings.check_in >= $${
+        values.length + 1
+      }::date AND bookings.check_in < ($${
+        values.length + 2
+      }::date + INTERVAL '1 day')`
+    );
+    values.push(start_date.trim(), end_date.trim());
+  }
+  if (start_date && !end_date) {
+    filters.push(`bookings.check_in >= $${values.length + 1}::date`);
+    values.push(start_date.trim());
+  }
 
-    if (filters.length > 0) {
-      sql += " WHERE " + filters.join(" AND ");
-    }
+  if (filters.length > 0) {
+    sql += " WHERE " + filters.join(" AND ");
+  }
 
-    sql += ` ORDER BY bookings.check_in DESC`;
+  sql += ` ORDER BY bookings.check_in DESC`;
 
-    const response = await pool.query(sql, values);
-    console.log(sql, 'sql<<<')
-    console.log(values, 'values')
-    return response.rows
-}
+  const response = await pool.query(sql, values);
+  console.log(sql, "sql<<<");
+  console.log(values, "values");
+  return response.rows;
+};
 
-export const getReviews = async ({name, rating, start_date, end_date}) => {
-    let sql = `
+export const getReviews = async ({ name, rating, start_date, end_date }) => {
+  let sql = `
       SELECT 
         reviews.id AS review_id,
         users.first_name || ' ' || users.last_name AS reviewer_name,
@@ -183,45 +187,44 @@ export const getReviews = async ({name, rating, start_date, end_date}) => {
       JOIN users ON reviews.user_id = users.id
     `;
 
-    let filters = [];
-    let values = [];
+  let filters = [];
+  let values = [];
 
-    if (name) {
-      filters.push(
-        `LOWER(users.first_name) LIKE LOWER ('%' || $${
-          filters.length + 1
-        } || '%')`
-      );
-      values.push(name.trim());
-    }
-    if (rating) {
-      filters.push(`reviews.rating = $${filters.length + 1}`);
-      values.push(parseInt(rating));
-    }
-    if (start_date && end_date) {
-      filters.push(
-        `DATE(reviews.created_at) >= $${
-          filters.length + 1
-        }::date AND DATE(reviews.created_at) < ($${
-          filters.length + 2
-        }::date + INTERVAL '1 day')`
-      );
-      values.push(start_date.trim(), end_date.trim());
-    }
+  if (name) {
+    filters.push(
+      `LOWER(users.first_name) LIKE LOWER ('%' || $${
+        filters.length + 1
+      } || '%')`
+    );
+    values.push(name.trim());
+  }
+  if (rating) {
+    filters.push(`reviews.rating = $${filters.length + 1}`);
+    values.push(parseInt(rating));
+  }
+  if (start_date && end_date) {
+    filters.push(
+      `DATE(reviews.created_at) >= $${
+        filters.length + 1
+      }::date AND DATE(reviews.created_at) < ($${
+        filters.length + 2
+      }::date + INTERVAL '1 day')`
+    );
+    values.push(start_date.trim(), end_date.trim());
+  }
 
-    if (filters.length > 0) {
-      sql += " WHERE " + filters.join(" AND ");
-    }
+  if (filters.length > 0) {
+    sql += " WHERE " + filters.join(" AND ");
+  }
 
-    sql += " ORDER BY reviews.created_at DESC";
+  sql += " ORDER BY reviews.created_at DESC";
 
-    const response = await pool.query(sql, values);
-    return response.rows
-}
+  const response = await pool.query(sql, values);
+  return response.rows;
+};
 
-
-export const getRooms = async({check_in, check_out}) => {
-    const sql = `
+export const getRooms = async ({ check_in, check_out }) => {
+  const sql = `
       SELECT * FROM hotelrooms
       WHERE is_active = true
       AND id NOT IN (
@@ -229,12 +232,19 @@ export const getRooms = async({check_in, check_out}) => {
         WHERE check_in <= $2 AND check_out >= $1
       )
     `;
-    const response = await pool.query(sql, [check_in, check_out]);
-    return response.rows
-}
+  const response = await pool.query(sql, [check_in, check_out]);
+  return response.rows;
+};
 
-export const changeRoomStatus = async ({id, is_active}) => {
-    const sql = `UPDATE hotelrooms SET is_active = $1 WHERE id = $2 RETURNING *`;
-    const response = await pool.query(sql, [is_active, id]);
-    return response.rows[0]
-}
+export const changeRoomStatus = async ({ id, is_active }) => {
+  const sql = `UPDATE hotelrooms SET is_active = $1 WHERE id = $2 RETURNING *`;
+  const response = await pool.query(sql, [is_active, id]);
+  if (response.rowCount === 0) {
+    const error = new Error(
+      "The selected room already has same status or invalid room ID"
+    );
+    error.status = 400;
+    throw error;
+  }
+  return response.rows[0];
+};

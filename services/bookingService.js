@@ -4,25 +4,10 @@ export const createNewBookingAndInvoice = async (
   userId,
   { dog_id, hotelroom_id, check_in, check_out }
 ) => {
-  //check date
   const checkInDate = new Date(check_in);
   const checkOutDate = new Date(check_out);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
   checkInDate.setHours(0, 0, 0, 0);
   checkOutDate.setHours(0, 0, 0, 0);
-
-  if (today > checkInDate) {
-    const error = new Error("The selected date already passed");
-    error.status = 400;
-    throw error;
-  }
-
-  if (checkInDate >= checkOutDate) {
-    const error = new Error("Invalid check-in / check-out dates");
-    error.status = 400;
-    throw error;
-  }
 
   //check dog belongs to user
   const checkDogSql = `SELECT name FROM dogs WHERE id = $1 AND user_id = $2`;
@@ -76,7 +61,6 @@ export const createNewBookingAndInvoice = async (
 
   const { price_per_night, name } = hotelroomPrice.rows[0];
 
-  console.log(hotelroomPrice.rows[0], "hotelrooms<<");
   //Summary price
   const numNigths = Math.ceil(
     (checkOutDate - checkInDate) / (1000 * 60 * 60 * 24)
@@ -120,17 +104,13 @@ export const createNewBookingAndInvoice = async (
     user_name: fullname,
     room_name: name,
     total_price: totalPrice,
+    hotelroom_id: hotelroom_id,
     created_at: created_at,
     invoice: invoiceResult.rows[0],
   };
 };
 
 export const getBookingByUserId = async (userId) => {
-  if (!userId) {
-    const error = new Error("Missing User ID token");
-    error.status = 400;
-    throw error;
-  }
   const sql = `SELECT b.id AS booking_id,
         b.check_in,
         b.check_out,
@@ -206,13 +186,11 @@ export const updateBookingByBookingId = async (
     dog_id,
     check_in,
     check_out,
-    bookingId, 
+    bookingId,
   ]);
 
   if (checkDogBooking.rowCount > 0) {
-    const error = new Error(
-      "This dog already has a booking during this period"
-    );
+    const error = new Error("This dog already has a booking during this period");
     error.status = 409;
     throw error;
   }
@@ -234,9 +212,7 @@ export const updateBookingByBookingId = async (
   ]);
 
   if (conflict.rowCount > 0) {
-    const error = new Error(
-      "This room is already booked during the selected period."
-    );
+    const error = new Error("This room is already booked during the selected period.");
     error.status = 400;
     throw error;
   }
@@ -282,14 +258,18 @@ export const updateBookingByBookingId = async (
 
   const updateInvoiceSql = `UPDATE invoices SET total_price = $1 WHERE booking_id = $2`;
   await pool.query(updateInvoiceSql, [price * numNigths, bookingId]);
-  
-  const updateBooking = response.rows[0]
-  const roomRes = await pool.query(`SELECT name FROM hotelrooms WHERE id = $1`, [updateBooking.hotelroom_id])
-  const room_name = roomRes.rows[0]?.name || 'unknown'
+
+  const updateBooking = response.rows[0];
+  const roomRes = await pool.query(
+    `SELECT name FROM hotelrooms WHERE id = $1`,
+    [updateBooking.hotelroom_id]
+  );
+  const room_name = roomRes.rows[0]?.name || "unknown";
 
   return {
-    ...updateBooking, room_name
-  }
+    ...updateBooking,
+    room_name,
+  };
 };
 
 export const cancelBookingByBookingId = async (userId, bookingId) => {
@@ -309,16 +289,13 @@ export const cancelBookingByBookingId = async (userId, bookingId) => {
   checkIn.setHours(0, 0, 0, 0);
 
   if (today >= checkIn) {
-    const error = new Error(
-      "Cannot cancel booking less than 1 day before check-in"
-    );
+    const error = new Error("Cannot cancel booking less than 1 day before check-in");
     error.status = 403;
     throw error;
   }
 
   const cancelSql = `UPDATE bookings SET status = 'cancelled' WHERE id = $1`;
-  const res = await pool.query(cancelSql, [bookingId]);
-  console.log(res.rows[0], "res backend");
+  await pool.query(cancelSql, [bookingId]);
 };
 
 export const getAvailableRoomByRoomSize = async ({
@@ -326,31 +303,7 @@ export const getAvailableRoomByRoomSize = async ({
   check_out,
   size,
 }) => {
-  const inDate = new Date(check_in);
-  const outDate = new Date(check_out);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  inDate.setHours(0, 0, 0, 0);
-  outDate.setHours(0, 0, 0, 0);
-
-  if (isNaN(inDate) || isNaN(outDate)) {
-    const error = new Error("Invalid date format");
-    error.status = 400;
-    throw error;
-  }
-
-  if (inDate >= outDate) {
-    const error = new Error("Check-in cannot come after Check-out");
-    error.status = 400;
-    throw error;
-  }
-
-  if (today > inDate) {
-    const error = new Error("The selected date already passed");
-    error.status = 400;
-    throw error;
-  }
-
+  
   const sql = `
   SELECT r.id, r.name, r.size, r.price_per_night
   FROM hotelrooms r

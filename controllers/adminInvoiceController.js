@@ -1,4 +1,3 @@
-
 import {
   createNewInvoice,
   deleteInvoiceByInvoiceId,
@@ -7,23 +6,26 @@ import {
 } from "../services/adminInvoiceService.js";
 
 //สร้าง invoice
-export const createInvoice = async (req, res) => {
+export const createInvoice = async (req, res, next) => {
   try {
     const { booking_id } = req.body;
+    if (!booking_id) {
+      const error = new Error("Invalid Booking ID");
+      error.status = 400;
+      throw error;
+    }
     const newInvoice = await createNewInvoice({ booking_id });
     res.status(200).json({
       message: "Invoice Created Successfully",
       data: newInvoice,
     });
   } catch (error) {
-    res.status(500).json({
-      message: error.message,
-    });
+    next(error);
   }
 };
 
 // Get All Invoices filer/search by query params
-export const getAllInvoices = async (req, res) => {
+export const getAllInvoices = async (req, res, next) => {
   try {
     const {
       invoice_id,
@@ -48,17 +50,19 @@ export const getAllInvoices = async (req, res) => {
       data: allUserInvoices,
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // Update Invoice (status, payment method, note)
-export const updateInvoiceById = async (req, res) => {
+export const updateInvoiceById = async (req, res, next) => {
   const invoiceId = parseInt(req.params.invoiceId, 10);
   const { payment_status, payment_method, note } = req.body;
 
   if (isNaN(invoiceId)) {
-    res.status(400).json({ message: "Parameter invalid type" });
+    const error = new Error("Invoice ID invalid type or Invalid invoice ID");
+    error.status = 400;
+    throw error;
   }
 
   try {
@@ -73,16 +77,18 @@ export const updateInvoiceById = async (req, res) => {
       data: updateInvoice,
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // Delete Invoice
-export const deleteInvoiceById = async (req, res) => {
+export const deleteInvoiceById = async (req, res, next) => {
   const invoiceId = parseInt(req.params.invoiceId);
 
   if (isNaN(invoiceId)) {
-    res.status(400).json({ message: "Parameter invalid type" });
+    const error = new Error("Invoice ID invalid type or Invalid invoice ID");
+    error.status = 400;
+    throw error;
   }
 
   try {
@@ -90,8 +96,6 @@ export const deleteInvoiceById = async (req, res) => {
 
     res.status(200).json({ message: "Invoice Deleted Successfully" });
   } catch (error) {
-    res
-      .status(error.status || 500)
-      .json({ message: error.message });
+    next(error);
   }
 };

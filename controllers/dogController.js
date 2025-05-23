@@ -5,13 +5,13 @@ import {
   updateDogsByDogId,
 } from "../services/dogService.js";
 
-export const createDog = async (req, res) => {
+export const createDog = async (req, res, next) => {
   try {
     const { name, breed, age, weight, health_conditions } = req.body;
     if (!name || !breed || !age || !weight) {
-      return res
-        .status(400)
-        .json({ message: "Please provide all required data" });
+      const error = new Error("Please provide all required data");
+      error.status = 400;
+      throw error;
     }
     const userId = req.user.id;
     const newDog = await createNewDog(
@@ -21,36 +21,53 @@ export const createDog = async (req, res) => {
 
     res.status(200).json({ message: "Dog Create Successfully", data: newDog });
   } catch (error) {
-    res.status(error.status || 500).json({
-      message: error.message
-    });
+    next(error);
   }
 };
 
 //เรียกดูข้อมูลหมาของ user
-export const getMyDogs = async (req, res) => {
+export const getMyDogs = async (req, res, next) => {
   try {
     const userId = req.user.id;
+    if (!userId) {
+      const error = new Error("Invalid user ID");
+      error.status = 400;
+      throw error;
+    }
+
     const myDogs = await getDogsByUserId(userId);
 
     res
       .status(200)
       .json({ message: "Fetch your dogs successfully", data: myDogs });
   } catch (error) {
-    res.status(500).json({
-      message: "Failed to fetch dogs",
-      error: error.message,
-    });
+    next(error);
   }
 };
 
-export const updateDogById = async (req, res) => {
+export const updateDogById = async (req, res, next) => {
   try {
     const dogId = parseInt(req.params.id);
     if (isNaN(dogId)) {
-      return res.status(200).json({ message: "Invalid Dog ID format" });
+      const error = new Error("Invalid Dog ID format");
+      error.status = 400;
+      throw error;
     }
+
     const { name, breed, age, weight, health_conditions } = req.body;
+
+    if (!name || !breed || !age || !weight) {
+      const error = new Error("Please input all fields before submit");
+      error.status = 400;
+      throw error;
+    }
+
+    if (isNaN(age) || isNaN(weight)) {
+      const error = new Error("Please input only numbers");
+      error.status = 400;
+      throw error;
+    }
+
     const userId = req.user.id;
     const updateDog = await updateDogsByDogId(dogId, userId, {
       name,
@@ -64,25 +81,23 @@ export const updateDogById = async (req, res) => {
       .status(200)
       .json({ message: "Dog Update Successfully", data: updateDog });
   } catch (error) {
-    res.status(error.status||500).json({
-      message: error.message,
-    });
+    next(error);
   }
 };
 
-export const deleteDogById = async (req, res) => {
+export const deleteDogById = async (req, res, next) => {
   try {
     const dogId = parseInt(req.params.id);
     const userId = req.user.id;
     if (isNaN(dogId)) {
-      return res.status(400).json({ message: "Invalid Dog ID format" });
+      const error = new Error("Invalid dog ID format");
+      error.status = 400;
+      throw error;
     }
     await deleteDogByDogId(userId, dogId);
 
     res.status(200).json({ message: "Dog Deleted Successfully" });
   } catch (error) {
-    res.status(error.status || 500).json({
-      message: error.message,
-    });
+    next(error);
   }
 };

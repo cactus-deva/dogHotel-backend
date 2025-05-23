@@ -6,9 +6,11 @@ export const createReviewService = async ({
   rating,
   comment,
 }) => {
+
   //เช็คว่า booking นี้มีจริงและ status= 'confirmed' or 'rescheduled' ถึงจะรีวิวได้
-  const bookingCheckSql = `SELECT * FROM bookings WHERE id = $1 AND user_id = $2 AND (status = 'confirmed' OR status = 'rescheduled)'`;
+  const bookingCheckSql = `SELECT * FROM bookings WHERE id = $1 AND user_id = $2 AND status = 'confirmed'`;
   const bookingCheck = await pool.query(bookingCheckSql, [booking_id, user_id]);
+
   if (bookingCheck.rowCount === 0) {
     const error = new Error("Cannot Review, Booking not confirmed");
     error.status = 400;
@@ -54,15 +56,19 @@ export const getReviewByUserIdService = async (userId) => {
   ORDER BY reviews.created_at DESC
 `;
   const response = await pool.query(sql, [userId]);
+
+  if(response.rowCount === 0) {
+    const error = new Error("Cannot find reviews for this User ID");
+      error.status = 400;
+      throw error;
+  }
   return response.rows
 };
-
 
 export const updateReviewByIdService = async (reviewId, userId, {rating, comment}) => {
     //เช็คว่า review นี้เป็นของ user นี้ไหม
     const checkSql = `SELECT * FROM reviews WHERE id = $1 AND user_id = $2`;
     const check = await pool.query(checkSql, [reviewId, userId]);
-
    
     if (check.rowCount === 0) {
       const error = new Error("You are not allowed to update this review")

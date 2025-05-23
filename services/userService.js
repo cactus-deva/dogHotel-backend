@@ -33,7 +33,7 @@ export const findUserByUserId = async (userId) => {
 };
 
 export const updateUserDataById = async (id, {first_name, last_name, password, phone}) => {
-    let sql, values
+  let sql, values
 
     if(password) {
            const hashPassword = await bcrypt.hash(password, 10);
