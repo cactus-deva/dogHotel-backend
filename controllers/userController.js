@@ -6,11 +6,24 @@ import {
   findUserByUsername,
   updateUserDataById,
 } from "../services/userService.js";
+import {
+  sanitizeNumber,
+  sanitizeString,
+  validateMaxLength,
+} from "../utils/sanitizeHelper.js";
 
 export const registerUser = async (req, res, next) => {
   try {
-    const username = req.body.username.toLowerCase();
-    const { first_name, last_name, password, email, phone } = req.body;
+    const username = sanitizeString(req.body.username.toLowerCase());
+    const first_name = sanitizeString(req.body.first_name);
+    const last_name = sanitizeString(req.body.last_name);
+    const password = sanitizeString(req.body.password);
+    const email = sanitizeString(req.body.email);
+    const phone = sanitizeString(req.body.phone);
+    validateMaxLength(username, 20, "username");
+    validateMaxLength(first_name, 40, "first_name");
+    validateMaxLength(last_name, 40, "last_name");
+    validateMaxLength(phone, 20, "phone");
 
     const newUser = await createUser({
       first_name,
@@ -26,9 +39,9 @@ export const registerUser = async (req, res, next) => {
       data: newUser,
     });
   } catch (error) {
-    if(error.code === '23505') {
-      error.status = 409
-      error.message = "username or email already exist"
+    if (error.code === "23505") {
+      error.status = 409;
+      error.message = "username or email already exist";
     }
     next(error);
   }
@@ -36,8 +49,8 @@ export const registerUser = async (req, res, next) => {
 
 export const loginUser = async (req, res, next) => {
   try {
-    const { username, password } = req.body;
-    const usernameStr = username.toLowerCase();
+    const { password } = req.body;
+    const usernameStr = sanitizeString(req.body.username.toLowerCase());
 
     const user = await findUserByUsername(usernameStr);
 
@@ -95,8 +108,15 @@ export const getUserById = async (req, res, next) => {
 //ไม่ให้ user แก้ไข username & email
 export const updateUserById = async (req, res, next) => {
   try {
-    const userId = parseInt(req.params.id);
-    const { first_name, last_name, password, phone } = req.body;
+    const userId = sanitizeNumber(req.params.id);
+    const { password } = req.body;
+    const first_name = sanitizeString(req.body.first_name);
+    const last_name = sanitizeString(req.body.last_name);
+    const phone = sanitizeString(req.body.phone);
+
+    validateMaxLength(first_name, 40, "first_name");
+    validateMaxLength(last_name, 40, "last_name");
+    validateMaxLength(phone, 20, "phone");
 
     if (!first_name || !last_name || !phone) {
       const error = new Error("Please input all fields before submit");
@@ -104,7 +124,8 @@ export const updateUserById = async (req, res, next) => {
       throw error;
     }
 
-    const updateUser = await updateUserDataById(userId, {
+    const updateUser = await updateUserDataById({
+      userId,
       first_name,
       last_name,
       password,

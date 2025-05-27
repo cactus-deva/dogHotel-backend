@@ -32,17 +32,23 @@ export const findUserByUserId = async (userId) => {
   return response.rows[0];
 };
 
-export const updateUserDataById = async (id, {first_name, last_name, password, phone}) => {
-  let sql, values
+export const updateUserDataById = async ({
+  userId,
+  first_name,
+  last_name,
+  password,
+  phone,
+}) => {
+  let sql, values;
 
-    if(password) {
-           const hashPassword = await bcrypt.hash(password, 10);
-           sql = `UPDATE users SET first_name = $1, last_name = $2, password = $3, phone = $4 WHERE id = $5 RETURNING id, first_name, last_name, phone`
-           values = [first_name, last_name, hashPassword, phone, id]
-        } else {
-          sql = `UPDATE users SET first_name = $1, last_name = $2, phone = $3 WHERE id = $4 RETURNING *`;
-          values = [first_name, last_name, phone, id];
-        }
-           const response = await pool.query(sql, values);
-           return response.rows[0]
-}
+  if (password) {
+    const hashPassword = await bcrypt.hash(password, 10);
+    sql = `UPDATE users SET first_name = $1, last_name = $2, password = $3, phone = $4 WHERE id = $5 RETURNING id, first_name, last_name, phone`;
+    values = [first_name, last_name, hashPassword, phone, userId];
+  } else {
+    sql = `UPDATE users SET first_name = $1, last_name = $2, phone = $3 WHERE id = $4 RETURNING *`;
+    values = [first_name, last_name, phone, userId];
+  }
+  const response = await pool.query(sql, values);
+  return response.rows[0];
+};

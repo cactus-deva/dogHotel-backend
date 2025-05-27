@@ -38,11 +38,15 @@ export const getDogsByUserId = async (userId) => {
   return response.rows;
 };
 
-export const updateDogsByDogId = async (
+export const updateDogsByDogId = async ({
   dogId,
   userId,
-  { name, breed, age, weight, health_conditions }
-) => {
+  name,
+  breed,
+  age,
+  weight,
+  health_conditions,
+}) => {
   const checkSql = `SELECT * FROM dogs WHERE id = $1 AND user_id = $2`;
   const checkDog = await pool.query(checkSql, [dogId, userId]);
 

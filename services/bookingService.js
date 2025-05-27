@@ -1,9 +1,12 @@
 import pool from "../db/connect.js";
 
-export const createNewBookingAndInvoice = async (
+export const createNewBookingAndInvoice = async ({
   userId,
-  { dog_id, hotelroom_id, check_in, check_out }
-) => {
+  dog_id,
+  hotelroom_id,
+  check_in,
+  check_out,
+}) => {
   const checkInDate = new Date(check_in);
   const checkOutDate = new Date(check_out);
   checkInDate.setHours(0, 0, 0, 0);
@@ -21,7 +24,7 @@ export const createNewBookingAndInvoice = async (
   const dogName = dogResult.rows[0].name;
 
   //check room has duplicate booking
-  const checkRoomSql = `SELECT * from Bookings WHERE hotelroom_id = $1 AND check_in = $2 AND check_out = $3`;
+  const checkRoomSql = `SELECT * from bookings WHERE hotelroom_id = $1 AND check_in = $2 AND check_out = $3`;
   const checkRoom = await pool.query(checkRoomSql, [
     hotelroom_id,
     check_in,
@@ -131,11 +134,14 @@ export const getBookingByUserId = async (userId) => {
   return response.rows;
 };
 
-export const updateBookingByBookingId = async (
+export const updateBookingByBookingId = async ({
   userId,
   bookingId,
-  { hotelroom_id, check_in, check_out, dog_id }
-) => {
+  hotelroom_id,
+  check_in,
+  check_out,
+  dog_id,
+}) => {
   // check booking duplicate
   const checkBookingSql = `
       SELECT * FROM bookings 
@@ -190,7 +196,9 @@ export const updateBookingByBookingId = async (
   ]);
 
   if (checkDogBooking.rowCount > 0) {
-    const error = new Error("This dog already has a booking during this period");
+    const error = new Error(
+      "This dog already has a booking during this period"
+    );
     error.status = 409;
     throw error;
   }
@@ -212,7 +220,9 @@ export const updateBookingByBookingId = async (
   ]);
 
   if (conflict.rowCount > 0) {
-    const error = new Error("This room is already booked during the selected period.");
+    const error = new Error(
+      "This room is already booked during the selected period."
+    );
     error.status = 400;
     throw error;
   }
@@ -289,7 +299,9 @@ export const cancelBookingByBookingId = async (userId, bookingId) => {
   checkIn.setHours(0, 0, 0, 0);
 
   if (today >= checkIn) {
-    const error = new Error("Cannot cancel booking less than 1 day before check-in");
+    const error = new Error(
+      "Cannot cancel booking less than 1 day before check-in"
+    );
     error.status = 403;
     throw error;
   }
@@ -303,7 +315,6 @@ export const getAvailableRoomByRoomSize = async ({
   check_out,
   size,
 }) => {
-  
   const sql = `
   SELECT r.id, r.name, r.size, r.price_per_night
   FROM hotelrooms r

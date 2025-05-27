@@ -4,10 +4,21 @@ import {
   getReviewByUserIdService,
   updateReviewByIdService,
 } from "../services/reviewService.js";
+import {
+  sanitizeNumber,
+  sanitizeString,
+  validateMaxLength,
+  validateMaxNumber,
+} from "../utils/sanitizeHelper.js";
 
 export const createReview = async (req, res, next) => {
   try {
-    const { user_id, booking_id, rating, comment } = req.body;
+    const user_id = sanitizeNumber(req.body.user_id);
+    const booking_id = sanitizeNumber(req.body.booking_id);
+    const rating = sanitizeNumber(req.body.rating);
+    const comment = sanitizeString(req.body.comment || "");
+    validateMaxLength(comment, 50, "comment");
+    validateMaxNumber(rating, 5, "rating");
 
     if (!user_id || !booking_id) {
       const error = new Error("Invalid user ID or booking ID");
@@ -16,7 +27,9 @@ export const createReview = async (req, res, next) => {
     }
 
     if (!rating || !comment) {
-      const error = new Error("Please input rating and comment before submit");
+      const error = new Error(
+        "Rating must be between 1 - 5. Please input rating and comment before submit"
+      );
       error.status = 400;
       throw error;
     }
@@ -38,7 +51,7 @@ export const createReview = async (req, res, next) => {
 
 export const getReviewByUserId = async (req, res, next) => {
   try {
-    const userId = parseInt(req.params.id);
+    const userId = sanitizeNumber(req.params.id);
     if (!userId) {
       const error = new Error("Invalid user ID");
       error.status = 400;
@@ -58,16 +71,19 @@ export const getReviewByUserId = async (req, res, next) => {
 
 export const updateReviewById = async (req, res, next) => {
   try {
-    const reviewId = parseInt(req.params.id);
+    const reviewId = sanitizeNumber(req.params.id);
     const userId = req.user.id;
-    const { rating, comment } = req.body;
+    const rating = sanitizeNumber(req.body.rating);
+    const comment = sanitizeString(req.body.comment || "");
+    validateMaxLength(comment, 50, "comment");
+    validateMaxNumber(rating, 5, "rating");
 
     if (!reviewId || !userId) {
       const error = new Error("Invalid user ID or review ID");
       error.status = 400;
       throw error;
     }
-    if (rating > 5 || rating < 0) {
+    if (rating < 0) {
       const error = new Error("please rate between 1- 5 stars");
       error.status = 400;
       throw error;
@@ -78,7 +94,9 @@ export const updateReviewById = async (req, res, next) => {
       throw error;
     }
 
-    const updateReview = await updateReviewByIdService(reviewId, userId, {
+    const updateReview = await updateReviewByIdService({
+      reviewId,
+      userId,
       rating,
       comment,
     });
@@ -90,12 +108,12 @@ export const updateReviewById = async (req, res, next) => {
   }
 };
 
-export const deleteReviewById = async (req, res,next) => {
+export const deleteReviewById = async (req, res, next) => {
   try {
-    const reviewId = parseInt(req.params.id);
+    const reviewId = sanitizeNumber(req.params.id);
     const userId = req.user.id;
 
-    if(!userId || !reviewId) {
+    if (!userId) {
       const error = new Error("Invalid user ID or review ID");
       error.status = 400;
       throw error;
@@ -104,6 +122,6 @@ export const deleteReviewById = async (req, res,next) => {
     await deleteReviewByIdService(reviewId, userId);
     res.status(200).json({ message: "Review Deleted Successfully" });
   } catch (error) {
-    next(error)
+    next(error);
   }
 };

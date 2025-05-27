@@ -8,7 +8,7 @@ export const checkAdminUsername = async (username) => {
   return response;
 };
 
-export const createAdminUsername = async (username, { password, email }) => {
+export const createAdminUsername = async ({ username, password, email }) => {
   //check dupe
   const checkDuplicateSql = `SELECT * FROM admin WHERE username = $1 OR email = $2`;
   const checkDuplicate = await pool.query(checkDuplicateSql, [username, email]);

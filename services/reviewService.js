@@ -65,7 +65,7 @@ export const getReviewByUserIdService = async (userId) => {
   return response.rows
 };
 
-export const updateReviewByIdService = async (reviewId, userId, {rating, comment}) => {
+export const updateReviewByIdService = async ( {reviewId, userId,rating, comment}) => {
     //เช็คว่า review นี้เป็นของ user นี้ไหม
     const checkSql = `SELECT * FROM reviews WHERE id = $1 AND user_id = $2`;
     const check = await pool.query(checkSql, [reviewId, userId]);
@@ -79,7 +79,6 @@ export const updateReviewByIdService = async (reviewId, userId, {rating, comment
     const updateSql = `UPDATE reviews SET rating = $1, comment = $2 WHERE id = $3 RETURNING *`;
     const response = await pool.query(updateSql, [rating, comment, reviewId]);
     return response.rows[0]
-
 }
 
 

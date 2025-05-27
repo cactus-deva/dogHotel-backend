@@ -1,58 +1,6 @@
 import pool from "../db/connect.js";
 
-export const createNewInvoice = async ({booking_id}) => {
-    const sql = `SELECT
-      b.id AS booking_id,
-      b.check_in,
-      b.check_out,
-      b.user_id,
-      hr.price_per_night
-      FROM bookings b
-      JOIN hotelrooms hr ON b.hotelroom_id = hr.id
-      WHERE b.id = $1`;
-
-    const result = await pool.query(sql, [booking_id]);
-
-    if (result.rowCount === 0) {
-        const error = new Error("Booking not found")
-        error.status = 404
-        throw error
-    }
-
-    const booking = result.rows[0];
-
-    // คำนวนจำนวนคืน
-    const checkIn = new Date(booking.check_in);
-    const checkOut = new Date(booking.check_out);
-    const numNights = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));
-
-    if (numNights <= 0) {
-        const error = new Error("Invalid check-in / check-out dates")
-        error.status = 400
-        throw error
-    }
-
-    const totalPrice = numNights * parseFloat(booking.price_per_night);
-
-    //เช็คว่า booking นี้มี invoice รึยัง
-    const checkInvoiceSql = `SELECT * FROM invoices WHERE booking_id = $1`;
-    const checkInvoice = await pool.query(checkInvoiceSql, [booking_id]);
-
-    if (checkInvoice.rowCount > 0) {
-        const error = new Error("Invoice already exists for this booking")
-        error.status = 400
-        throw error
-    }
-
-    //ถ้าผ่านหมดก็สร้าง invoice ใหม่โลดด
-    const insertSql = `INSERT INTO invoices (booking_id, total_price)
-      VALUES ($1, $2) RETURNING *`;
-
-    const response = await pool.query(insertSql, [booking_id, totalPrice]);
-    return response.rows[0]
-}
-
-
+//create invoice ถูกสร้างอัตโนมัติใน booking ของ user
 export const getAllUserInvoices = async ({invoice_id, booking_id, issue_date, payment_status, start_date, end_date}) => {
     let sql = `
         SELECT 

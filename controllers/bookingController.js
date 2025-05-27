@@ -5,30 +5,38 @@ import {
   getBookingByUserId,
   updateBookingByBookingId,
 } from "../services/bookingService.js";
+import {
+  sanitizeNumber,
+  sanitizeString,
+  validateDate,
+} from "../utils/sanitizeHelper.js";
 
 export const createBookingAndInvoice = async (req, res, next) => {
-  const userId = req.user.id;
-  const { dog_id, hotelroom_id, check_in, check_out } = req.body;
-  const checkInDate = new Date(check_in);
-  const checkOutDate = new Date(check_out);
-  const today = new Date();
   try {
+    const userId = req.user.id;
+    const dog_id = sanitizeNumber(req.body.dog_id);
+    const hotelroom_id = sanitizeNumber(req.body.hotelroom_id);
+    const check_in = validateDate(req.body.check_in, "Check-in Date");
+    const check_out = validateDate(req.body.check_out, "Check-out Date");
+    const today = new Date();
+
     //check date
     today.setHours(0, 0, 0, 0);
-    checkInDate.setHours(0, 0, 0, 0);
-    checkOutDate.setHours(0, 0, 0, 0);
+    check_in.setHours(0, 0, 0, 0);
+    check_out.setHours(0, 0, 0, 0);
+
     if (!check_in || !check_out) {
       const error = new Error("Please select check-in and check-out date");
       error.status = 400;
       throw error;
     }
-    if (today > checkInDate) {
+    if (today > check_in) {
       const error = new Error("Selected date already passed");
       error.status = 400;
       throw error;
     }
 
-    if (checkInDate >= checkOutDate) {
+    if (check_in >= check_out) {
       const error = new Error("Invalid check-in / check-out date");
       error.status = 400;
       throw error;
@@ -40,7 +48,8 @@ export const createBookingAndInvoice = async (req, res, next) => {
       throw error;
     }
 
-    const newBookingAndInvoice = await createNewBookingAndInvoice(userId, {
+    const newBookingAndInvoice = await createNewBookingAndInvoice({
+      userId,
       dog_id,
       hotelroom_id,
       check_in,
@@ -104,9 +113,12 @@ export const getMyBookings = async (req, res, next) => {
 //คงuser_id และ booking_id ไว้เหมือนเดิม แก้ไขแค่ห้อง, checkin, checkout
 export const updateBookingById = async (req, res, next) => {
   try {
-    const bookingId = parseInt(req.params.bookingId);
+    const bookingId = sanitizeNumber(req.params.bookingId);
     const userId = req.user.id;
-    const { hotelroom_id, check_in, check_out, dog_id } = req.body;
+    const hotelroom_id = sanitizeNumber(req.body.hotelroom_id);
+    const check_in = validateDate(req.body.check_in, "Check-in Date");
+    const check_out = validateDate(req.body.check_out, "Check-out Date");
+    const dog_id = sanitizeNumber(req.body.dog_id);
 
     if (!hotelroom_id || !check_in || !check_out || !dog_id) {
       const error = new Error("Please fill all fields before update booking");
@@ -114,13 +126,9 @@ export const updateBookingById = async (req, res, next) => {
       throw error;
     }
 
-    if (isNaN(bookingId)) {
-      const error = new Error("Invalid booking ID format");
-      error.status = 400;
-      throw error;
-    }
-
-    const updatedBooking = await updateBookingByBookingId(userId, bookingId, {
+    const updatedBooking = await updateBookingByBookingId({
+      userId,
+      bookingId,
       hotelroom_id,
       check_in,
       check_out,
@@ -145,10 +153,10 @@ export const updateBookingById = async (req, res, next) => {
 export const cancelBookingById = async (req, res, next) => {
   try {
     const userId = req.user.id;
-    const bookingId = parseInt(req.params.bookingId);
+    const bookingId = sanitizeNumber(req.params.bookingId);
 
-    if (!userId || isNaN(bookingId)) {
-      const error = new Error("Invalid user ID or booking ID");
+    if (!userId) {
+      const error = new Error("Invalid user ID");
       error.status = 400;
       throw error;
     }
@@ -163,27 +171,21 @@ export const cancelBookingById = async (req, res, next) => {
 
 export const getAvailableRoomsBySize = async (req, res, next) => {
   try {
-    const { check_in, check_out, size } = req.query;
-    const inDate = new Date(check_in);
-    const outDate = new Date(check_out);
+    const check_in = validateDate(req.query.check_in, "Check-in Date");
+    const check_out = validateDate(req.query.check_out, "Check-out Date");
+    const size = sanitizeString(req.query.size);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    inDate.setHours(0, 0, 0, 0);
-    outDate.setHours(0, 0, 0, 0);
+    check_in.setHours(0, 0, 0, 0);
+    check_out.setHours(0, 0, 0, 0);
 
-    if (isNaN(inDate) || isNaN(outDate)) {
-      const error = new Error("Invalid date format");
-      error.status = 400;
-      throw error;
-    }
-
-    if (inDate >= outDate) {
+    if (check_in >= check_out) {
       const error = new Error("Check-in cannot come after Check-out");
       error.status = 400;
       throw error;
     }
 
-    if (today > inDate) {
+    if (today > check_in) {
       const error = new Error("The selected date already passed");
       error.status = 400;
       throw error;

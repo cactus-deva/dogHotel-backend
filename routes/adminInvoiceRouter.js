@@ -1,10 +1,8 @@
 import express from "express";
 import {
   authenticateToken,
-  authorizeSelf,
 } from "../middleware/authMiddleware.js";
 import {
-  createInvoice,
   deleteInvoiceById,
   getAllInvoices,
   updateInvoiceById,
@@ -15,7 +13,6 @@ const adminInvoiceRouter = express.Router();
 
 adminInvoiceRouter.use(authenticateAdmin);
 adminInvoiceRouter
-  .post("/create", createInvoice)
   .get("/", authenticateToken, getAllInvoices)
   .patch("/:invoiceId", authenticateToken, updateInvoiceById)
   .delete("/:invoiceId", authenticateToken, deleteInvoiceById);
