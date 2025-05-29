@@ -30,7 +30,7 @@ app.use('/api/users/dogs', dogRouter)
 app.use('/api/users/booking', bookingRouter)
 app.use('/api/users/review', reviewRouter)
 
-setInterval(keepDatabaseAlive, 300000)
+// setInterval(keepDatabaseAlive, 1000000)
 app.use(errorHandler)
 
 app.listen(PORT, () =>{
