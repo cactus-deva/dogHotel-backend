@@ -62,7 +62,7 @@ export const createNewBookingAndInvoice = async ({
     throw error;
   }
 
-  const { price_per_night, name } = hotelroomPrice.rows[0];
+  const { price_per_night, name, size } = hotelroomPrice.rows[0];
 
   //Summary price
   const numNigths = Math.ceil(
@@ -108,6 +108,7 @@ export const createNewBookingAndInvoice = async ({
     room_name: name,
     total_price: totalPrice,
     hotelroom_id: hotelroom_id,
+    size: size,
     created_at: created_at,
     invoice: invoiceResult.rows[0],
   };
@@ -123,7 +124,8 @@ export const getBookingByUserId = async (userId) => {
         b.created_at,
         b.price_per_night,
         d.name AS dog_name,
-        r.name AS room_name
+        r.name AS room_name,
+        r.size AS size
         FROM bookings b
         JOIN dogs d ON b.dog_id = d.id
         JOIN hotelrooms r ON b.hotelroom_id = r.id
