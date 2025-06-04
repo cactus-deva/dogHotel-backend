@@ -24,7 +24,7 @@ export const createNewBookingAndInvoice = async ({
   const dogName = dogResult.rows[0].name;
 
   //check room has duplicate booking
-  const checkRoomSql = `SELECT * from bookings WHERE hotelroom_id = $1 AND check_in = $2 AND check_out = $3`;
+  const checkRoomSql = `SELECT * from bookings WHERE hotelroom_id = $1 AND check_in = $2 AND check_out = $3 AND status = 'confirmed'`;
   const checkRoom = await pool.query(checkRoomSql, [
     hotelroom_id,
     check_in,
